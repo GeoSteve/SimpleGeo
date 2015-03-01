@@ -192,8 +192,7 @@ section.success .container {
     text-align: center;
 }
 
-section.success .container h4 {
-    text-transform: inherit;
+section.success .container p {
     padding-bottom: 20px;
 }
 
