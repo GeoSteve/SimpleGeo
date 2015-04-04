@@ -1,10 +1,10 @@
-// map object
+// Map object
 var map = L.map('map',{
 	scrollWheelZoom: false,
 	zoomControl: false
 }).setView([39.605046, -97.935209], 4);
 
-// basemap
+// Basemap
 L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
 	maxZoom: 18,
 	attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
@@ -13,21 +13,33 @@ L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
 	id: 'hoganmaps.ikkpodh4'
 }).addTo(map);
 
-$.getJSON('/data/us_states_simplified_high.geojson',function(data) {
-    L.geoJson(data, {
-        style: {
-            'fillColor': '#505050',
-            'weight': 1,
-            'opacity': 1,
-            'color': 'white',
-            'fillOpacity': 0.6
-        },
-        onEachFeature: function(feature,layer) {
-            layer.bindPopup(buildPopUpContent(feature.properties));
-        }
-    }).addTo(map);
+// Get Data
+$.ajax({
+    method: "GET",
+    url: "http://api.census.gov/data/2010/sf1?key=730e49d850365e415931ee4f3a309ffea517b92d&get=P0010001&for=state"
+})
+.done(function(censusData) {
+    censusData = mapCensusResults(censusData);
+    // console.log(censusData);
+    $.getJSON('/data/us_states_simplified_high.geojson', function(censusGeometry) {
+        geojson = joinJSON2GeoJSON(censusGeometry, censusData, 'GEOID');
+
+        L.geoJson(geojson, {
+            style: {
+                'fillColor': '#505050',
+                'weight': 1,
+                'opacity': 1,
+                'color': 'white',
+                'fillOpacity': 0.6
+            },
+            onEachFeature: function(feature,layer) {
+                layer.bindPopup(buildPopUpContent(feature.properties));
+            }
+        }).addTo(map);
+    });
 });
 
+// Helper Functions
 function buildPopUpContent(properties) {
     var content = '';
     $.each(properties, function(index, value) {
@@ -36,29 +48,38 @@ function buildPopUpContent(properties) {
     return content;
 }
 
-function jsonJoin(input1, input2, joinKey) {
-    var joinResult = [],
-        joinOptions = {},
-        joinUser = {};
+function joinJSON2GeoJSON(geoJSON, json, joinKey) {
+    var joinOptions = {},
+        target = {};
 
-    _.forEach(input1, function(currentUser) {
-        joinOptions[joinKey] = currentUser.id // Set key from variable by using object literal
+    _.forEach(geoJSON.features, function(primary) {
+        // Set key from variable by using object literal
+        joinOptions[joinKey] = primary.properties[joinKey]
         // Find macthing object
-        joinUser = _.find(input2, joinOptions);
+        target = _.find(json, joinOptions);
         // Join common objects
-        joinResult.push(_.assign(currentUser, joinUser));
+        primary.properties = _.assign(primary.properties, target);
     });
 
-    // Merge in the remaining objects from 2nd array
-    joinResult = joinResult.concat(input2);
+    return geoJSON;
+}
 
-    // Limit to unique objects
-    joinResult = _.uniq(joinResult, joinKey);
-
-    // Reoder the array of objects
-    joinResult = _.sortBy(joinResult, joinKey);
-
-    return joinResult;
+function mapCensusResults(data) {
+    var formattedData = [];
+    fields = data.shift();
+    for(var d in data) {
+        var rawRecord = data[d];
+        var cleanRecord = {};
+        for(var f in fields) {
+            field = fields[f];
+            if(field === 'state') {
+                field = 'GEOID';
+            }
+            cleanRecord[field] = rawRecord[f];
+        }
+        formattedData.push(cleanRecord);
+    }
+    return formattedData;
 }
 
 function modifyKey(inputObject, oldKey, newKey) {
@@ -71,6 +92,3 @@ function modifyKey(inputObject, oldKey, newKey) {
     });
     return newObject;
 }
-
-// var censusAPI = 'http://api.census.gov/data/2010/sf1?key=730e49d850365e415931ee4f3a309ffea517b92d&get=P0010001&for=state';
-
