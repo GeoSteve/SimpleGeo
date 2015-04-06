@@ -22,17 +22,11 @@ $.ajax({
     censusData = mapCensusResults(censusData);
     // console.log(censusData);
     $.getJSON('/data/us_states_simplified_high.geojson', function(censusGeometry) {
-        geojson = joinJSON2GeoJSON(censusGeometry, censusData, 'GEOID');
+        geoJSON = joinJSON2GeoJSON(censusGeometry, censusData, 'GEOID');
 
-        L.geoJson(geojson, {
-            style: {
-                'fillColor': '#505050',
-                'weight': 1,
-                'opacity': 1,
-                'color': 'white',
-                'fillOpacity': 0.6
-            },
-            onEachFeature: function(feature,layer) {
+        L.geoJson(geoJSON, {
+            style: getStyle,
+            onEachFeature: function(feature, layer) {
                 layer.bindPopup(buildPopUpContent(feature.properties));
             }
         }).addTo(map);
@@ -40,6 +34,56 @@ $.ajax({
 });
 
 // Helper Functions
+function getStyle(feature) {
+    console.log(feature);
+    if (feature.properties.P0010001 <1000000) {
+        return {
+            weight: 1,
+            opacity: 1,
+            color: 'white',
+            dashArray: '3',
+            fillOpacity: 0.8,
+            fillColor: '#edf8fb'
+        };
+    } else  if(feature.properties.P0010001 <5000000) {
+        return {
+            weight: 1,
+            opacity: 1,
+            color: 'white',
+            dashArray: '3',
+            fillOpacity: 0.8,
+            fillColor: '#b2e2e2'
+        };
+    } else  if(feature.properties.P0010001 <10000000) {
+        return {
+            weight: 1,
+            opacity: 1,
+            color: 'white',
+            dashArray: '3',
+            fillOpacity: 0.8,
+            fillColor: '#66c2a4'
+        };
+    } else  if(feature.properties.P0010001 <15000000) {
+        return {
+            weight: 1,
+            opacity: 1,
+            color: 'white',
+            dashArray: '3',
+            fillOpacity: 0.8,
+            fillColor: '#2ca25f'
+        };
+    } else {
+        return {
+            weight: 1,
+            opacity: 1,
+            color: 'white',
+            dashArray: '3',
+            fillOpacity: 0.8,
+            fillColor: '#006d2c'
+        };
+    }
+}
+
 function buildPopUpContent(properties) {
     var content = '';
     $.each(properties, function(index, value) {
